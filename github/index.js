@@ -1,10 +1,33 @@
 const { Octokit } = require("@octokit/core");
 
 const octokit = new Octokit({ auth: process.env.TOKEN });
+const ticketId = "PIC-2613"
 
-octokit.request("GET /repos/ministryofjustice/court-case-service/commits", {
+octokit.request("GET /repos/ministryofjustice/court-case-service/commits?per_page=100", {
     org: "octokit",
     type: "private",
-}).then((response) => response.data.forEach((item) => {
-    console.log(item.commit.message);
-}));
+}).then((response) => {
+
+    const filteredData = response.data
+        .filter((item) => item.commit.message.includes(ticketId))
+
+    filteredData.map(date => console.log(date))
+
+    const commitDates = filteredData.map(item => new Date(item.commit.author.date));
+    const maxDate = Math.max(...commitDates);
+    const minDate = Math.min(...commitDates);
+
+    let ms = maxDate - minDate;
+    const days = Math.floor(ms/(1000*60*60*24))
+    const hours = Math.floor(((ms/(1000*60*60*24)) - days)* 24)
+    const minutes = Math.floor(((((ms/(1000*60*60*24)) - days)*24) - hours)*60)
+
+    const bugFixes = filteredData.filter(item => item.commit.message.includes("🐛")).length
+
+
+    console.log(`Of the ${response.data.length} last commits, ${filteredData.length} were associated with ticket ${ticketId}`)
+    console.log(`The first commit was on ${new Date(minDate)}`)
+    console.log(`The last commit was on ${new Date(maxDate)}`)
+    console.log(`Cycle time for ${ticketId} was ${days} days, ${hours} hours and ${minutes} minutes`)
+    console.log(`There were ${bugFixes} bug fixes associated with this ticket`)
+});
