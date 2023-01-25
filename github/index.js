@@ -16,6 +16,19 @@ function getTimeDelta(maxDate, minDate) {
     };
 }
 
+function getStats(commits) {
+    const commitDates = commits.map(item => new Date(item.commit.author.date));
+
+    const stats = {
+        commitDates,
+        dateOfLastCommit: new Date(Math.max(...commitDates)),
+        dateOfFirstCommit: new Date(Math.min(...commitDates)),
+        cycleTime: getTimeDelta(Math.max(...commitDates), Math.min(...commitDates)),
+        numberOfBugFixes: commits.filter(item => item.commit.message.includes("🐛")).length
+    }
+    return stats;
+}
+
 octokit.request("GET /repos/ministryofjustice/court-case-service/commits?per_page=100", {
     org: "octokit",
     type: "private",
@@ -24,18 +37,11 @@ octokit.request("GET /repos/ministryofjustice/court-case-service/commits?per_pag
     const filteredData = response.data
         .filter((item) => item.commit.message.includes(ticketId))
 
-    filteredData.map(date => console.log(date))
-
-    const commitDates = filteredData.map(item => new Date(item.commit.author.date));
-    const maxDate = Math.max(...commitDates);
-    const minDate = Math.min(...commitDates);
-    const cycleTime = getTimeDelta(maxDate, minDate);
-    const bugFixes = filteredData.filter(item => item.commit.message.includes("🐛")).length
-
+    const stats = getStats(filteredData);
 
     console.log(`Of the ${response.data.length} last commits, ${filteredData.length} were associated with ticket ${ticketId}`)
-    console.log(`The first commit was on ${new Date(minDate)}`)
-    console.log(`The last commit was on ${new Date(maxDate)}`)
-    console.log(`Cycle time for ${ticketId} was ${(cycleTime.days)} days, ${(cycleTime.hours)} hours and ${(cycleTime.minutes)} minutes`)
-    console.log(`There were ${bugFixes} bug fixes associated with this ticket`)
+    console.log(`The first commit was on ${stats.dateOfFirstCommit}`)
+    console.log(`The last commit was on ${stats.dateOfLastCommit}`)
+    console.log(`Cycle time for ${ticketId} was ${(stats.cycleTime.days)} days, ${(stats.cycleTime.hours)} hours and ${(stats.cycleTime.minutes)} minutes`)
+    console.log(`There were ${stats.numberOfBugFixes} bug fixes associated with this ticket`)
 });
